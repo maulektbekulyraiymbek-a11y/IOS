@@ -1,5 +1,4 @@
-# homework-2-atm
-Safe ATM Banking Terminal Simulator
+
 void checkBalance({required String name, required double balance}) =>
     print('User: $name | Balance: $balance');
 
