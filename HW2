@@ -1,0 +1,90 @@
+# homework-2-atm
+Safe ATM Banking Terminal Simulator
+void checkBalance({required String name, required double balance}) =>
+    print('User: $name | Balance: $balance');
+
+double deposit({required double currentBalance, double? amount}) {
+  double depositAmount;
+  if (amount == null) {
+    depositAmount = 0.0;
+  } else {
+    depositAmount = amount;
+  }
+
+  double newBalance = currentBalance + depositAmount;
+
+  print('Receipt: +$depositAmount. Total: $newBalance');
+
+  return newBalance;
+}
+
+double withdraw({
+  required String name,
+  required double currentBalance,
+  double? amount,
+  int? pinCode,
+}) {
+  int enteredPin;
+  if (pinCode == null) {
+    enteredPin = 0000;
+  } else {
+    enteredPin = pinCode;
+  }
+
+  int correctPin = 1234;
+
+  if (enteredPin != correctPin) {
+    print('Error for $name: Wrong PIN.');
+    return currentBalance;
+  }
+
+  double withdrawAmount;
+  if (amount == null) {
+    withdrawAmount = 0.0;
+  } else {
+    withdrawAmount = amount;
+  }
+
+  if (currentBalance < withdrawAmount) {
+    print('Error: Not enough funds on account.');
+    return currentBalance;
+  }
+
+  double newBalance = currentBalance - withdrawAmount;
+  print('Success: -$withdrawAmount. Remainder: $newBalance');
+
+  return newBalance;
+}
+
+void main() {
+  String userName = 'Daulet';
+  double myBalance = 800.0;
+
+  checkBalance(name: userName, balance: myBalance);
+
+  myBalance = deposit(currentBalance: myBalance, amount: 200.0);
+  myBalance = deposit(currentBalance: myBalance, amount: null);
+
+  myBalance = withdraw(
+    name: userName,
+    currentBalance: myBalance,
+    pinCode: 1234,
+    amount: 100.0,
+  );
+
+  myBalance = withdraw(
+    name: userName,
+    currentBalance: myBalance,
+    pinCode: 0000,
+    amount: 50.0,
+  );
+
+  myBalance = withdraw(
+    name: userName,
+    currentBalance: myBalance,
+    pinCode: 1234,
+    amount: 2000.0,
+  );
+
+  checkBalance(name: userName, balance: myBalance);
+}
