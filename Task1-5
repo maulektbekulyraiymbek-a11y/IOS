@@ -1,0 +1,117 @@
+task 1
+void main() {
+  for (int a = 1; a <= 10; a++) {
+    for (int b = 1; b <= 10; b++) {
+      print("$a * $b = ${a * b}");
+    }
+    print("");
+  }
+}
+
+
+task 2
+bool isLeapYear(int year) {
+  return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+}
+
+int daysInMonth(int month, int year) {
+  if (month == 2) {
+    return isLeapYear(year) ? 29 : 28;
+  } else if (month == 4 || month == 6 || month == 9 || month == 11) {
+    return 30;
+  }
+  return 31;
+}
+
+void main() {
+  var dates = [
+    "05.09.2026",
+    "28.02.2024",
+    "28.02.2026",
+    "29.02.2026",
+    "28.02.2100",
+    "28.02.2000",
+    "31.12.2025",
+  ];
+
+  for (var dateStr in dates) {
+    List<String> parts = dateStr.split('.');
+    int day = int.parse(parts[0]);
+    int month = int.parse(parts[1]);
+    int year = int.parse(parts[2]);
+
+    if (month < 1 || month > 12 || day < 1 || day > daysInMonth(month, year)) {
+      print("$dateStr -> invalid date");
+      continue;
+    }
+
+    if (day < daysInMonth(month, year)) {
+      day++;
+    } else {
+      day = 1;
+      if (month < 12) {
+        month++;
+      } else {
+        month = 1;
+        year++;
+      }
+    }
+
+    String dayStr = day < 10 ? "0$day" : "$day";
+    String monthStr = month < 10 ? "0$month" : "$month";
+    print("$dateStr -> $dayStr.$monthStr.$year");
+  }
+}
+
+task3
+void main() {
+  String text = "flutter mobile development";
+  String vowels = "aeiou";
+  int count = 0;
+
+  for (int i = 0; i < text.length; i++) {
+    if (vowels.contains(text[i].toLowerCase())) {
+      count++;
+    }
+  }
+  print("Vowels in \"$text\": $count");
+}
+
+task4
+List<int> numbers = [14, 88, 3, 42, 99, 12, 67];
+List<int> numbers1 = [234, 34, 123, 44, 949, 112, 67];
+
+void findMinMax(List<int> list) {
+  int max = list[0];
+  int min = list[0];
+
+  for (int i = 1; i < list.length; i++) {
+    if (list[i] > max) max = list[i];
+    if (list[i] < min) min = list[i];
+  }
+  print("max: $max, min: $min");
+}
+
+void main() {
+  findMinMax(numbers);
+  findMinMax(numbers1);
+}
+task5
+bool isPrime(int n) {
+  if (n < 2) return false;
+  for (int i = 2; i * i <= n; i++) {
+    if (n % i == 0) return false;
+  }
+  return true;
+}
+
+void main() {
+  for (int n in [3, 6]) {
+    print("$n -> ${isPrime(n) ? 'prime number' : 'not prime number'}");
+  }
+}
+
+
+
+
+
