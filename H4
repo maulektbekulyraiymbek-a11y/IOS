@@ -1,0 +1,153 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: ProfilePage(),
+    );
+  }
+}
+
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool isFollowing = false;
+  bool isLiked = false;
+  int likes = 120;
+
+  void toggleFollow() {
+    setState(() {
+      isFollowing = !isFollowing;
+    });
+  }
+
+  void toggleLike() {
+    setState(() {
+      if (isLiked) {
+        likes--;
+      } else {
+        likes++;
+      }
+
+      isLiked = !isLiked;
+    });
+  }
+
+  void resetProfile() {
+    setState(() {
+      isFollowing = false;
+      isLiked = false;
+      likes = 120;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        title: const Text('Profile Card'),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Card(
+          elevation: 8,
+          margin: const EdgeInsets.all(24),
+          child: Padding(
+            padding: const EdgeInsets.all(30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircleAvatar(
+                  radius: 55,
+                  backgroundColor: Colors.blueGrey,
+                  child: Icon(
+                    Icons.person,
+                    size: 70,
+                    color: Colors.white,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                const Text(
+                  'Raiymbek Mauletbekuly',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                const Text(
+                  'Flutter Student',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                ElevatedButton(
+                  onPressed: toggleFollow,
+                  child: Text(
+                    isFollowing ? 'Following' : 'Follow',
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      onPressed: toggleLike,
+                      icon: Icon(
+                        isLiked
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: isLiked
+                            ? Colors.red
+                            : Colors.grey,
+                        size: 34,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$likes Likes',
+                      style: const TextStyle(
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                OutlinedButton(
+                  onPressed: resetProfile,
+                  child: const Text('Reset'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
