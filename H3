@@ -124,7 +124,7 @@ class ShoppingCart {
       print(item.getDetails());
 
       if (item is Downloadable) {
-        item.download(item.title);
+        (item as Downloadable).download(item.title);
       }
     }
 
