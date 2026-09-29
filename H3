@@ -44,3 +44,112 @@ void main() {
 
   print('Total collection value: \$${library.getTotalValue().toStringAsFixed(2)}');
 }
+
+
+#PART2
+abstract class MediaItem {
+  String id;
+  String title;
+  double price;
+
+  MediaItem(this.id, this.title, this.price);
+
+  String getDetails();
+}
+
+mixin Downloadable {
+  void download(String title) {
+    print('Downloading $title...');
+  }
+}
+
+class Audiobook extends MediaItem with Downloadable {
+  double durationHours;
+  String narrator;
+
+  Audiobook(
+    String id,
+    String title,
+    double price,
+    this.durationHours,
+    this.narrator,
+  ) : super(id, title, price);
+
+  @override
+  String getDetails() {
+    return 'Audiobook: $title, Narrator: $narrator, Price: $price';
+  }
+}
+
+class EBook extends MediaItem with Downloadable {
+  double fileSizeMB;
+  String author;
+
+  EBook(
+    String id,
+    String title,
+    double price,
+    this.fileSizeMB,
+    this.author,
+  ) : super(id, title, price);
+
+  @override
+  String getDetails() {
+    return 'EBook: $title, Author: $author, Price: $price';
+  }
+}
+
+class ShoppingCart {
+  final List<MediaItem> _items = [];
+
+  void addItem(MediaItem item) {
+    _items.add(item);
+  }
+
+  double calculateTotalWithTax({double taxRate = 0.12}) {
+    final total = _items.fold<double>(
+      0.0,
+      (sum, item) => sum + item.price,
+    );
+
+    return total * (1 + taxRate);
+  }
+
+  List<MediaItem> filterByMaxPrice(double maxPrice) {
+    return _items.where((item) => item.price <= maxPrice).toList();
+  }
+
+  void printReceipt() {
+    for (final item in _items) {
+      print(item.getDetails());
+
+      if (item is Downloadable) {
+        item.download(item.title);
+      }
+    }
+
+    print('Total: ${calculateTotalWithTax().toStringAsFixed(2)}');
+  }
+}
+
+void main() {
+  final cart = ShoppingCart();
+
+  cart.addItem(
+    Audiobook('1', 'Harry Potter', 15.0, 10.0, 'Jim Dale'),
+  );
+  cart.addItem(
+    EBook('2', 'Clean Code', 25.0, 5.0, 'Robert Martin'),
+  );
+  cart.addItem(
+    EBook('3', 'Dart Book', 10.0, 3.0, 'John Smith'),
+  );
+
+  print('Books under 20:');
+  for (final item in cart.filterByMaxPrice(20.0)) {
+    print(item.getDetails());
+  }
+
+  print('\nReceipt:');
+  cart.printReceipt();
+}
