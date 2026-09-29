@@ -7,7 +7,7 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-
+  @override
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -25,127 +25,107 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool isFollowing = false;
-  bool isLiked = false;
-  int likes = 120;
+  int likes = 0;
+  int dislikes = 0;
 
-  void toggleFollow() {
+  void followButton() {
     setState(() {
       isFollowing = !isFollowing;
     });
   }
 
-  void toggleLike() {
+  void likeButton() {
     setState(() {
-      if (isLiked) {
-        likes--;
-      } else {
-        likes++;
-      }
-
-      isLiked = !isLiked;
+      likes++;
     });
   }
 
-  void resetProfile() {
+  void dislikeButton() {
+    setState(() {
+      dislikes++;
+    });
+  }
+
+  void resetButton() {
     setState(() {
       isFollowing = false;
-      isLiked = false;
-      likes = 120;
+      likes = 0;
+      dislikes = 0;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        title: const Text('Profile Card'),
-        centerTitle: true,
+        title: const Text('Profile'),
       ),
       body: Center(
-        child: Card(
-          elevation: 8,
-          margin: const EdgeInsets.all(24),
-          child: Padding(
-            padding: const EdgeInsets.all(30),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircleAvatar(
+              radius: 60,
+              child: Icon(
+                Icons.person,
+                size: 70,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Mauletbekuly Raimbek',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 5),
+            const Text(
+              'IT in Business Student',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: followButton,
+              child: Text(isFollowing ? 'Following' : 'Follow'),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const CircleAvatar(
-                  radius: 55,
-                  backgroundColor: Colors.blueGrey,
-                  child: Icon(
-                    Icons.person,
-                    size: 70,
-                    color: Colors.white,
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                const Text(
-                  'Raiymbek Mauletbekuly',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                const Text(
-                  'Flutter Student',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                ElevatedButton(
-                  onPressed: toggleFollow,
-                  child: Text(
-                    isFollowing ? 'Following' : 'Follow',
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Column(
                   children: [
-                    IconButton(
-                      onPressed: toggleLike,
-                      icon: Icon(
-                        isLiked
-                            ? Icons.favorite
-                            : Icons.favorite_border,
-                        color: isLiked
-                            ? Colors.red
-                            : Colors.grey,
-                        size: 34,
-                      ),
+                    ElevatedButton(
+                      onPressed: likeButton,
+                      child: const Text('Like'),
                     ),
-                    const SizedBox(width: 8),
                     Text(
-                      '$likes Likes',
-                      style: const TextStyle(
-                        fontSize: 18,
-                      ),
+                      'Likes: $likes',
+                      style: const TextStyle(fontSize: 18),
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 20),
-
-                OutlinedButton(
-                  onPressed: resetProfile,
-                  child: const Text('Reset'),
+                const SizedBox(width: 30),
+                Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: dislikeButton,
+                      child: const Text('Dislike'),
+                    ),
+                    Text(
+                      'Dislikes: $dislikes',
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: resetButton,
+              child: const Text('Reset'),
+            ),
+          ],
         ),
       ),
     );
