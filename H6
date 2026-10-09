@@ -1,0 +1,491 @@
+
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const EventlyApp());
+}
+
+class EventlyApp extends StatelessWidget {
+  const EventlyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Evently',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6651E8),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF5F5FA),
+      ),
+      home: const RegistrationPage(),
+    );
+  }
+}
+
+class RegistrationPage extends StatefulWidget {
+  const RegistrationPage({super.key});
+
+  @override
+  State<RegistrationPage> createState() =>
+      _RegistrationPageState();
+}
+
+class _RegistrationPageState extends State<RegistrationPage> {
+  final _formKey = GlobalKey<FormState>();
+
+  final _confirmKey = GlobalKey<FormFieldState<String>>();
+
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+
+  String? _selectedRole;
+  bool _acceptedTerms = false;
+  bool _showTermsError = false;
+  bool _hidePassword = true;
+  bool _hideConfirm = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  InputDecoration fieldStyle(
+    String label,
+    IconData icon, {
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: const Color(0xFFF9F8FF),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: Color(0xFFE3E0F0),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: Color(0xFF6651E8),
+          width: 2,
+        ),
+      ),
+    );
+  }
+
+  void register() {
+    final valid = _formKey.currentState!.validate();
+
+    setState(() {
+      _showTermsError = !_acceptedTerms;
+    });
+
+    if (!valid || !_acceptedTerms) {
+      return;
+    }
+
+    // Print safe registration data to the console.
+    // Never log actual passwords.
+    debugPrint('===== EVENTLY REGISTRATION =====');
+    debugPrint('Name: ${_nameController.text.trim()}');
+    debugPrint('Email: ${_emailController.text.trim()}');
+    debugPrint('Role: $_selectedRole');
+    debugPrint(
+      'Password: [HIDDEN] '
+      '(${_passwordController.text.length} characters)',
+    );
+    debugPrint('Terms accepted: $_acceptedTerms');
+    debugPrint('Registration validation successful!');
+    debugPrint('================================');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Welcome to Evently, '
+          '${_nameController.text.trim()}! 🎉',
+        ),
+        backgroundColor: const Color(0xFF4031A5),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(18),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 15),
+
+                  // Evently brand header
+                  Container(
+                    padding: const EdgeInsets.all(26),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF4430BD),
+                          Color(0xFF8666F4),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.confirmation_number_outlined,
+                          color: Colors.white,
+                          size: 38,
+                        ),
+                        SizedBox(height: 18),
+                        Text(
+                          'EVENTLY',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Discover. Connect. Experience.',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Your next great experience starts here.',
+                          style: TextStyle(
+                            color: Color(0xFFE9E3FF),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 7),
+                        ),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Create your account',
+                            style: TextStyle(
+                              fontSize: 23,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          const Text(
+                            'Join the community of event lovers.',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 25),
+
+                          // Full Name
+                          TextFormField(
+                            controller: _nameController,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            textCapitalization:
+                                TextCapitalization.words,
+                            decoration: fieldStyle(
+                              'Full Name',
+                              Icons.person_outline,
+                            ),
+                            validator: (value) {
+                              if (value == null ||
+                                  value.trim().isEmpty) {
+                                return 'Full name is required';
+                              }
+                              return null;
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Email
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType:
+                                TextInputType.emailAddress,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            decoration: fieldStyle(
+                              'Email Address',
+                              Icons.email_outlined,
+                            ),
+                            validator: (value) {
+                              if (value == null ||
+                                  value.trim().isEmpty) {
+                                return 'Email is required';
+                              }
+
+                              final email = value.trim();
+                              final pattern = RegExp(
+                                r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+                              );
+
+                              if (!pattern.hasMatch(email)) {
+                                return 'Enter a valid email address';
+                              }
+                              return null;
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Password
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _hidePassword,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            decoration: fieldStyle(
+                              'Password',
+                              Icons.lock_outline,
+                              suffix: IconButton(
+                                icon: Icon(
+                                  _hidePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _hidePassword = !_hidePassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            onChanged: (value) {
+                              if (_confirmController.text.isNotEmpty) {
+                                _confirmKey.currentState?.validate();
+                              }
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Password is required';
+                              }
+                              if (value.length < 6) {
+                                return 'Minimum 6 characters required';
+                              }
+                              return null;
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Confirm Password
+                          TextFormField(
+                            key: _confirmKey,
+                            controller: _confirmController,
+                            obscureText: _hideConfirm,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            decoration: fieldStyle(
+                              'Confirm Password',
+                              Icons.verified_user_outlined,
+                              suffix: IconButton(
+                                icon: Icon(
+                                  _hideConfirm
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _hideConfirm = !_hideConfirm;
+                                  });
+                                },
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please confirm your password';
+                              }
+                              if (value != _passwordController.text) {
+                                return 'Passwords do not match';
+                              }
+                              return null;
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // User Role
+                          DropdownButtonFormField<String>(
+                            value: _selectedRole,
+                            isExpanded: true,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            decoration: fieldStyle(
+                              'Select Your Role',
+                              Icons.badge_outlined,
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Student',
+                                child: Text('Student'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Organizer',
+                                child: Text('Event Organizer'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Host',
+                                child: Text('Event Host'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRole = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null) {
+                                return 'Please select your role';
+                              }
+                              return null;
+                            },
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Terms and Conditions
+                          CheckboxListTile(
+                            value: _acceptedTerms,
+                            controlAffinity:
+                                ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text(
+                              'I accept the Terms and Conditions',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                _acceptedTerms = value ?? false;
+                                _showTermsError = false;
+                              });
+                            },
+                          ),
+
+                          if (_showTermsError)
+                            const Padding(
+                              padding: EdgeInsets.only(
+                                left: 12,
+                                bottom: 10,
+                              ),
+                              child: Text(
+                                'You must accept the terms',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+
+                          const SizedBox(height: 15),
+
+                          // Register Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: FilledButton(
+                              onPressed: register,
+                              style: FilledButton.styleFrom(
+                                backgroundColor:
+                                    const Color(0xFF6651E8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Create Account',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(width: 9),
+                                  Icon(Icons.arrow_forward),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  const Center(
+                    child: Text(
+                      'EVENTLY • Your world of events',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
