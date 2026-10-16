@@ -1,0 +1,810 @@
+
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const EventlyApp());
+}
+
+// false for DartPad, true for a Flutter project with assets.
+const bool useLocalImages = false;
+
+class Event {
+  final String title;
+  final String description;
+  final String category;
+  final String price;
+  final String date;
+  final String imageUrl;
+  final String imageAsset;
+
+  const Event({
+    required this.title,
+    required this.description,
+    required this.category,
+    required this.price,
+    required this.date,
+    required this.imageUrl,
+    required this.imageAsset,
+  });
+}
+
+const List<Event> events = [
+  Event(
+    title: 'City Night Live',
+    description: 'Enjoy live music and a great atmosphere in Almaty. '
+        'Meet local artists and spend an exciting evening with friends.',
+    category: 'Music',
+    price: '7 500 KZT',
+    date: '17 Oct 2026',
+    imageUrl:
+        'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=900',
+    imageAsset: 'assets/images/concert.png',
+  ),
+  Event(
+    title: 'Tech Connect',
+    description: 'A technology conference about modern apps, design, '
+        'and new ideas. Meet students and developers from Almaty.',
+    category: 'Technology',
+    price: '5 000 KZT',
+    date: '24 Oct 2026',
+    imageUrl:
+        'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=900',
+    imageAsset: 'assets/images/tech.png',
+  ),
+  Event(
+    title: 'Sim Race Cup',
+    description: 'Join a friendly sim racing competition and test '
+        'your driving skills against other players.',
+    category: 'Gaming',
+    price: '3 500 KZT',
+    date: '31 Oct 2026',
+    imageUrl:
+        'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=900',
+    imageAsset: 'assets/images/racing.png',
+  ),
+  Event(
+    title: 'Weekend Run Club',
+    description: 'Join a community morning run. Meet new people, '
+        'get active, and enjoy the city together.',
+    category: 'Sport',
+    price: 'Free',
+    date: '1 Nov 2026',
+    imageUrl:
+        'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=900',
+    imageAsset: 'assets/images/running.png',
+  ),
+];
+
+class EventlyApp extends StatelessWidget {
+  const EventlyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Evently',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+        ),
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          centerTitle: false,
+        ),
+      ),
+      home: const RegisterScreen(),
+    );
+  }
+}
+
+// Registration Screen
+
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() =>
+      _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final formKey = GlobalKey<FormState>();
+
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmController = TextEditingController();
+
+  String selectedRole = 'Student';
+  bool acceptTerms = false;
+  bool hidePassword = true;
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmController.dispose();
+    super.dispose();
+  }
+
+  void register() {
+    if (!formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (!acceptTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please accept the terms'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HomeScreen(
+          name: nameController.text.trim(),
+          email: emailController.text.trim(),
+          role: selectedRole,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Evently'),
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 430,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(
+                    Icons.event_available,
+                    size: 58,
+                    color: Colors.blue,
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  const Text(
+                    'Create an account',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 27,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  const Text(
+                    'Register to explore events in Almaty',
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Full name',
+                      border: OutlineInputBorder(),
+                      prefixIcon:
+                          Icon(Icons.person_outline),
+                    ),
+                    validator: (value) {
+                      if (value == null ||
+                          value.trim().isEmpty) {
+                        return 'Enter your name';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType:
+                        TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                      prefixIcon:
+                          Icon(Icons.email_outlined),
+                    ),
+                    validator: (value) {
+                      if (value == null ||
+                          !value.contains('@') ||
+                          !value.contains('.')) {
+                        return 'Enter a valid email';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: hidePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      border: const OutlineInputBorder(),
+                      prefixIcon:
+                          const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            hidePassword = !hidePassword;
+                          });
+                        },
+                        icon: Icon(
+                          hidePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null ||
+                          value.length < 6) {
+                        return 'Use at least 6 characters';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  TextFormField(
+                    controller: confirmController,
+                    obscureText: hidePassword,
+                    decoration: const InputDecoration(
+                      labelText: 'Confirm password',
+                      border: OutlineInputBorder(),
+                      prefixIcon:
+                          Icon(Icons.lock_outline),
+                    ),
+                    validator: (value) {
+                      if (value !=
+                          passwordController.text) {
+                        return 'Passwords do not match';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  DropdownButtonFormField<String>(
+                    value: selectedRole,
+                    decoration: const InputDecoration(
+                      labelText: 'Role',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      'Student',
+                      'Organizer',
+                      'Host'
+                    ].map((role) {
+                      return DropdownMenuItem(
+                        value: role,
+                        child: Text(role),
+                      );
+                    }).toList(),
+                    onChanged: (role) {
+                      if (role != null) {
+                        setState(() {
+                          selectedRole = role;
+                        });
+                      }
+                    },
+                  ),
+
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: acceptTerms,
+                    title:
+                        const Text('I agree to the terms'),
+                    controlAffinity:
+                        ListTileControlAffinity.leading,
+                    onChanged: (checked) {
+                      setState(() {
+                        acceptTerms = checked ?? false;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  ElevatedButton(
+                    onPressed: register,
+                    style: ElevatedButton.styleFrom(
+                      padding:
+                          const EdgeInsets.symmetric(
+                        vertical: 16,
+                      ),
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Register'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Main Screen
+
+class HomeScreen extends StatefulWidget {
+  final String name;
+  final String email;
+  final String role;
+
+  const HomeScreen({
+    super.key,
+    required this.name,
+    required this.email,
+    required this.role,
+  });
+
+  @override
+  State<HomeScreen> createState() =>
+      _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int currentTab = 0;
+
+  final Set<String> favorites = {};
+
+  void toggleFavorite(Event event) {
+    setState(() {
+      if (favorites.contains(event.title)) {
+        favorites.remove(event.title);
+      } else {
+        favorites.add(event.title);
+      }
+    });
+  }
+
+  void showDetails(Event event) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailScreen(
+          event: event,
+          isFavorite:
+              favorites.contains(event.title),
+          onFavorite: () => toggleFavorite(event),
+        ),
+      ),
+    );
+  }
+
+  // Event Card
+
+  Widget eventCard(Event event) {
+    final isSaved =
+        favorites.contains(event.title);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 15),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => showDetails(event),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            EventImage(
+              event: event,
+              height: 150,
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event.category.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 5),
+
+                        Text(
+                          event.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+
+                        Text(event.date),
+
+                        const SizedBox(height: 5),
+
+                        Text(
+                          event.price,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  IconButton(
+                    tooltip: isSaved
+                        ? 'Remove from favorites'
+                        : 'Save event',
+                    onPressed: () =>
+                        toggleFavorite(event),
+                    icon: Icon(
+                      isSaved
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Feed and Favorites Lists
+
+  Widget eventList(
+    List<Event> items,
+    String pageKey,
+  ) {
+    if (items.isEmpty) {
+      return const Center(
+        child: Text('No favorite events yet'),
+      );
+    }
+
+    return ListView(
+      key: PageStorageKey<String>(pageKey),
+      padding: const EdgeInsets.all(16),
+      children: items.map(eventCard).toList(),
+    );
+  }
+
+  // Profile Screen
+
+  Widget profilePage() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircleAvatar(
+              radius: 42,
+              child: Icon(
+                Icons.person,
+                size: 45,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            Text(
+              widget.name,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            Text(widget.email),
+
+            const SizedBox(height: 8),
+
+            Text('Role: ${widget.role}'),
+
+            const SizedBox(height: 24),
+
+            const ListTile(
+              leading:
+                  Icon(Icons.notifications_none),
+              title: Text('Notifications'),
+            ),
+
+            const ListTile(
+              leading:
+                  Icon(Icons.settings_outlined),
+              title: Text('Settings'),
+            ),
+
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const RegisterScreen(),
+                  ),
+                  (route) => false,
+                );
+              },
+              child: const Text('Log out'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final savedEvents = events
+        .where((e) => favorites.contains(e.title))
+        .toList();
+
+    final pages = [
+      eventList(events, 'feed'),
+      eventList(savedEvents, 'favorites'),
+      profilePage(),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Evently'),
+      ),
+
+      body: IndexedStack(
+        index: currentTab,
+        children: pages,
+      ),
+
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: currentTab,
+        onTap: (index) {
+          setState(() {
+            currentTab = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            label: 'Feed',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite_outline),
+            label: 'Favorites',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Detail Screen
+
+class DetailScreen extends StatefulWidget {
+  final Event event;
+  final bool isFavorite;
+  final VoidCallback onFavorite;
+
+  const DetailScreen({
+    super.key,
+    required this.event,
+    required this.isFavorite,
+    required this.onFavorite,
+  });
+
+  @override
+  State<DetailScreen> createState() =>
+      _DetailScreenState();
+}
+
+class _DetailScreenState
+    extends State<DetailScreen> {
+  late bool saved;
+
+  @override
+  void initState() {
+    super.initState();
+    saved = widget.isFavorite;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final event = widget.event;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Event Details'),
+      ),
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 650,
+            ),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius:
+                      BorderRadius.circular(12),
+                  child: EventImage(
+                    event: event,
+                    height: 240,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Text(
+                  event.title,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Text(
+                  'Category: ${event.category}',
+                ),
+
+                Text(
+                  'Date: ${event.date}',
+                ),
+
+                Text(
+                  'Price: ${event.price}',
+                ),
+
+                const SizedBox(height: 20),
+
+                Text(
+                  event.description,
+                  style: const TextStyle(
+                    fontSize: 16,
+                  ),
+                ),
+
+                const SizedBox(height: 22),
+
+                ElevatedButton.icon(
+                  onPressed: () {
+                    widget.onFavorite();
+
+                    setState(() {
+                      saved = !saved;
+                    });
+                  },
+                  icon: Icon(
+                    saved
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                  ),
+                  label: Text(
+                    saved
+                        ? 'Remove from Favorites'
+                        : 'Add to Favorites',
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(
+                    Icons.arrow_back,
+                  ),
+                  label: const Text(
+                    'Back to Feed',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Event Images
+
+class EventImage extends StatelessWidget {
+  final Event event;
+  final double height;
+
+  const EventImage({
+    super.key,
+    required this.event,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Widget onError(
+      BuildContext context,
+      Object error,
+      StackTrace? stack,
+    ) {
+      return Container(
+        height: height,
+        color: Colors.blue.shade50,
+        child: const Center(
+          child: Icon(
+            Icons.event,
+            size: 54,
+            color: Colors.blue,
+          ),
+        ),
+      );
+    }
+
+    if (useLocalImages) {
+      return Image.asset(
+        event.imageAsset,
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: onError,
+      );
+    }
+
+    return Image.network(
+      event.imageUrl,
+      height: height,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: onError,
+    );
+  }
+}
