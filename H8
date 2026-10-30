@@ -1,0 +1,375 @@
+import 'package:flutter/material.dart';
+
+void main() => runApp(const EventlyApp());
+
+// MODEL: models/product.dart
+class Product {
+  final int id;
+  final String title;
+  final String category;
+  final double rating;
+  final int price;
+  final IconData icon;
+  final Color color;
+
+  const Product({
+    required this.id,
+    required this.title,
+    required this.category,
+    required this.rating,
+    required this.price,
+    required this.icon,
+    required this.color,
+  });
+}
+
+List<Product> seedProducts() => const [
+  Product(id: 1, title: 'Concert VIP Ticket', category: 'Tickets', rating: 4.9, price: 25000, icon: Icons.confirmation_number, color: Colors.deepPurple),
+  Product(id: 2, title: 'Evently Hoodie', category: 'Merch', rating: 4.8, price: 18000, icon: Icons.checkroom, color: Colors.blue),
+  Product(id: 3, title: 'Wireless Headphones', category: 'Equipment', rating: 4.7, price: 35000, icon: Icons.headphones, color: Colors.orange),
+  Product(id: 4, title: 'Festival Cap', category: 'Merch', rating: 4.6, price: 6000, icon: Icons.face, color: Colors.green),
+  Product(id: 5, title: 'Gaming Tournament Pass', category: 'Tickets', rating: 4.9, price: 12000, icon: Icons.sports_esports, color: Colors.red),
+  Product(id: 6, title: 'Event Photography', category: 'Services', rating: 4.8, price: 20000, icon: Icons.camera_alt, color: Colors.teal),
+  Product(id: 7, title: 'Music Festival Poster', category: 'Merch', rating: 4.5, price: 4500, icon: Icons.music_note, color: Colors.pink),
+  Product(id: 8, title: 'Evently Gift Box', category: 'Accessories', rating: 4.7, price: 9500, icon: Icons.card_giftcard, color: Colors.indigo),
+];
+
+class EventlyApp extends StatelessWidget {
+  const EventlyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Evently Smart Catalog',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        scaffoldBackgroundColor: const Color(0xFFF7F6FA),
+      ),
+      home: const CatalogScreen(),
+    );
+  }
+}
+
+// SCREEN: screens/catalog_screen.dart
+class CatalogScreen extends StatefulWidget {
+  const CatalogScreen({super.key});
+
+  @override
+  State<CatalogScreen> createState() => _CatalogScreenState();
+}
+
+class _CatalogScreenState extends State<CatalogScreen> {
+  List<Product> products = List<Product>.from(seedProducts());
+  bool gridMode = false;
+  int nextId = 100;
+  int refreshCount = 0;
+
+  Future<void> refreshCatalog() async {
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+
+    setState(() {
+      refreshCount++;
+      products.insert(
+        0,
+        Product(
+          id: nextId++,
+          title: 'New Evently Drop #$refreshCount',
+          category: 'New Arrival',
+          rating: 5.0,
+          price: 7900,
+          icon: Icons.auto_awesome,
+          color: Colors.purple,
+        ),
+      );
+    });
+  }
+
+  void deleteProduct(Product product) {
+    final originalIndex = products.indexWhere((p) => p.id == product.id);
+    if (originalIndex == -1) return;
+
+    setState(() => products.removeAt(originalIndex));
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('${product.title} deleted'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'UNDO',
+          onPressed: () {
+            if (!mounted || products.any((p) => p.id == product.id)) return;
+            setState(() {
+              final safeIndex = originalIndex.clamp(0, products.length).toInt();
+              products.insert(safeIndex, product);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  void resetCatalog() {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    setState(() => products = List<Product>.from(seedProducts()));
+  }
+
+  Widget dismissibleProduct(Product product, {required bool grid}) {
+    return Dismissible(
+      key: ValueKey(product.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 22),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.delete, color: Colors.white, size: 28),
+      ),
+      onDismissed: (_) => deleteProduct(product),
+      child: grid ? ProductGridCard(product: product) : ProductListTile(product: product),
+    );
+  }
+
+  Widget listFeed() {
+    return RefreshIndicator(
+      onRefresh: refreshCatalog,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(12),
+        itemCount: products.length,
+        separatorBuilder: (_, __) => const Divider(height: 1, thickness: 0.6),
+        itemBuilder: (_, index) => dismissibleProduct(products[index], grid: false),
+      ),
+    );
+  }
+
+  Widget gridCatalog() {
+    return RefreshIndicator(
+      onRefresh: refreshCatalog,
+      child: GridView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.72,
+        ),
+        itemCount: products.length,
+        itemBuilder: (_, index) => dismissibleProduct(products[index], grid: true),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        title: const Text('Evently Catalog'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+            onPressed: refreshCatalog,
+          ),
+          IconButton(
+            tooltip: 'Switch List / Grid',
+            icon: Icon(gridMode ? Icons.view_list : Icons.grid_view),
+            onPressed: () => setState(() => gridMode = !gridMode),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Discover Evently Products', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 5),
+                Text('${products.length} products • ${gridMode ? 'Grid' : 'List'} mode', style: const TextStyle(color: Colors.grey)),
+                const SizedBox(height: 5),
+                const Text('Pull down to refresh • Swipe left to delete', style: TextStyle(color: Colors.deepPurple, fontSize: 12)),
+              ],
+            ),
+          ),
+          Expanded(
+            child: products.isEmpty
+                ? CatalogEmptyState(onReset: resetCatalog)
+                : gridMode ? gridCatalog() : listFeed(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// WIDGETS: widgets/product_list_tile.dart
+class ProductListTile extends StatelessWidget {
+  final Product product;
+  const ProductListTile({super.key, required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: product.color.withOpacity(0.12),
+            child: Icon(product.icon, color: product.color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(product.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 5,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    CategoryTag(category: product.category),
+                    RatingStars(rating: product.rating),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text('${product.price} ₸', style: const TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+// WIDGETS: widgets/product_grid_card.dart
+class ProductGridCard extends StatelessWidget {
+  final Product product;
+  const ProductGridCard({super.key, required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 1,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: product.color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(product.icon, color: product.color, size: 38),
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(product.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            CategoryTag(category: product.category),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                RatingStars(rating: product.rating),
+                Flexible(child: Text('${product.price} ₸', maxLines: 1, overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.deepPurple))),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// WIDGETS: widgets/category_tag.dart
+class CategoryTag extends StatelessWidget {
+  final String category;
+  const CategoryTag({super.key, required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0EAFA),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(category, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 10, color: Colors.deepPurple)),
+    );
+  }
+}
+
+class RatingStars extends StatelessWidget {
+  final double rating;
+  const RatingStars({super.key, required this.rating});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.star, color: Colors.amber, size: 14),
+        const SizedBox(width: 2),
+        Text(rating.toStringAsFixed(1), style: const TextStyle(fontSize: 11)),
+      ],
+    );
+  }
+}
+
+// WIDGETS: widgets/catalog_empty_state.dart
+class CatalogEmptyState extends StatelessWidget {
+  final VoidCallback onReset;
+  const CatalogEmptyState({super.key, required this.onReset});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.inventory_2_outlined, size: 85, color: Colors.grey),
+          const SizedBox(height: 15),
+          const Text('Catalog is Empty', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('All products have been removed.', style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 18),
+          ElevatedButton.icon(
+            onPressed: onReset,
+            icon: const Icon(Icons.restart_alt),
+            label: const Text('Reset Catalog'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
