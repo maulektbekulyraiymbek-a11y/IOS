@@ -1,0 +1,639 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CartProvider(),
+      child: const EventlyApp(),
+    ),
+  );
+}
+
+// LAB 9: Products and global shopping cart
+class Product {
+  final int id;
+  final String name;
+  final String description;
+  final String category;
+  final int price;
+  final IconData icon;
+  final Color color;
+
+  const Product({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.category,
+    required this.price,
+    required this.icon,
+    required this.color,
+  });
+}
+
+const products = <Product>[
+  Product(id: 1, name: 'Evently Hoodie', description: 'Comfortable hoodie with the Evently logo.', category: 'Merch', price: 12500, icon: Icons.checkroom, color: Colors.indigo),
+  Product(id: 2, name: 'Sim Racing Pass', description: 'Entry ticket for a simulator racing session.', category: 'Gaming', price: 3500, icon: Icons.sports_motorsports, color: Colors.deepOrange),
+  Product(id: 3, name: 'Music Event Ticket', description: 'Standard ticket for an Evently music night.', category: 'Tickets', price: 7500, icon: Icons.music_note, color: Colors.purple),
+  Product(id: 4, name: 'Evently Cap', description: 'Everyday cap with a clean Evently design.', category: 'Merch', price: 4500, icon: Icons.face, color: Colors.teal),
+  Product(id: 5, name: 'VIP Event Pass', description: 'Priority access for a sample Evently event.', category: 'Tickets', price: 15000, icon: Icons.local_activity, color: Colors.amber),
+  Product(id: 6, name: 'Evently Tote Bag', description: 'Reusable bag for events and university.', category: 'Merch', price: 3000, icon: Icons.shopping_bag_outlined, color: Colors.green),
+];
+
+String priceText(int price) {
+  if (price == 0) return 'Free';
+  final text = price.toString();
+  return '${text.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ' ')} ₸';
+}
+
+class CartProvider extends ChangeNotifier {
+  final List<Product> _items = [];
+
+  List<Product> get items => List.unmodifiable(_items);
+  int get count => _items.length;
+  int get totalPrice => _items.fold(0, (sum, product) => sum + product.price);
+
+  bool contains(Product product) => _items.any((p) => p.id == product.id);
+
+  void toggle(Product product) {
+    if (contains(product)) {
+      _items.removeWhere((p) => p.id == product.id);
+    } else {
+      _items.add(product);
+    }
+    notifyListeners();
+  }
+
+  void remove(Product product) {
+    _items.removeWhere((p) => p.id == product.id);
+    notifyListeners();
+  }
+
+  void clearAll() {
+    _items.clear();
+    notifyListeners();
+  }
+}
+
+// Previous lab: event model and sample events
+class Event {
+  final String title;
+  final String description;
+  final String category;
+  final String date;
+  final String price;
+  final String image;
+
+  const Event(this.title, this.description, this.category, this.date, this.price, this.image);
+}
+
+const events = <Event>[
+  Event('City Night Live', 'Music, friends and a great atmosphere in Almaty.', 'Music', '17 Oct 2026', '7 500 ₸', 'assets/images/concert.png'),
+  Event('Tech Connect', 'Meet developers and learn about new technologies.', 'Technology', '24 Oct 2026', '5 000 ₸', 'assets/images/tech.png'),
+  Event('Sim Race Cup', 'Race with other players in driving simulators.', 'Gaming', '31 Oct 2026', '3 500 ₸', 'assets/images/racing.png'),
+  Event('Weekend Run Club', 'Join a friendly running community.', 'Sport', '1 Nov 2026', 'Free', 'assets/images/running.png'),
+];
+
+class EventlyApp extends StatelessWidget {
+  const EventlyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Evently | Lab 9',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2675D7)),
+        scaffoldBackgroundColor: const Color(0xFFF7F9FC),
+      ),
+      home: const RegisterScreen(),
+    );
+  }
+}
+
+// Registration from Lab 7
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final formKey = GlobalKey<FormState>();
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final repeatController = TextEditingController();
+  String role = 'Student';
+  bool agreed = false;
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    repeatController.dispose();
+    super.dispose();
+  }
+
+  void register() {
+    if (!formKey.currentState!.validate()) return;
+    if (!agreed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please accept the terms')),
+      );
+      return;
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HomeScreen(
+          name: nameController.text.trim(),
+          email: emailController.text.trim(),
+          role: role,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('evently.')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(Icons.event_available, size: 56, color: Color(0xFF2675D7)),
+                  const SizedBox(height: 14),
+                  const Text('Create an account', textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 24),
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Full name', border: OutlineInputBorder()),
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Enter your name' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                    validator: (v) => v == null || !v.contains('@') ? 'Enter a valid email' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
+                    validator: (v) => v == null || v.length < 6 ? 'At least 6 characters' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: repeatController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Confirm password', border: OutlineInputBorder()),
+                    validator: (v) => v != passwordController.text ? 'Passwords do not match' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: role,
+                    decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
+                    items: ['Student', 'Organizer', 'Host']
+                        .map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                    onChanged: (value) => setState(() => role = value ?? role),
+                  ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('I agree to the terms'),
+                    value: agreed,
+                    onChanged: (value) => setState(() => agreed = value ?? false),
+                  ),
+                  FilledButton(onPressed: register, child: const Text('Register')),
+                  const SizedBox(height: 12),
+                  const Text('Demo registration. No server or real account is created.',
+                      textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  final String name;
+  final String email;
+  final String role;
+
+  const HomeScreen({super.key, required this.name, required this.email, required this.role});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int tab = 0;
+  final Set<String> favoriteTitles = {};
+
+  void toggleFavorite(Event event) {
+    setState(() {
+      if (!favoriteTitles.add(event.title)) favoriteTitles.remove(event.title);
+    });
+  }
+
+  void openDetails(Event event) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EventDetailScreen(
+          event: event,
+          isFavorite: favoriteTitles.contains(event.title),
+          onFavorite: () => toggleFavorite(event),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final saved = events.where((event) => favoriteTitles.contains(event.title)).toList();
+    const tabNames = ['Catalog', 'Feed', 'Favorites', 'Profile'];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('evently.  /  ${tabNames[tab]}'),
+        actions: [
+          // LAB 9: The badge is rebuilt on every CartProvider update.
+          Consumer<CartProvider>(
+            builder: (context, cart, child) => IconButton(
+              tooltip: 'Open cart',
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
+              },
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.shopping_cart_outlined, size: 27),
+                  if (cart.count > 0)
+                    Positioned(
+                      right: -10,
+                      top: -10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(minWidth: 18),
+                        child: Text('${cart.count}', textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white, fontSize: 11)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
+      ),
+      body: IndexedStack(
+        index: tab,
+        children: [
+          const CatalogScreen(),
+          EventList(eventsList: events, favoriteTitles: favoriteTitles,
+              onFavorite: toggleFavorite, onOpen: openDetails),
+          EventList(eventsList: saved, favoriteTitles: favoriteTitles,
+              onFavorite: toggleFavorite, onOpen: openDetails),
+          ProfileScreen(name: widget.name, email: widget.email, role: widget.role),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: tab,
+        onTap: (index) => setState(() => tab = index),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), label: 'Catalog'),
+          BottomNavigationBarItem(icon: Icon(Icons.event_outlined), label: 'Feed'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'Favorites'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        ],
+      ),
+    );
+  }
+}
+
+// LAB 9 Screen 1: catalog with six products and add/remove toggles
+class CatalogScreen extends StatelessWidget {
+  const CatalogScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cart = context.watch<CartProvider>();
+    return ListView.builder(
+      key: const PageStorageKey('catalog'),
+      padding: const EdgeInsets.all(16),
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        final product = products[index];
+        final added = cart.contains(product);
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 66, height: 75,
+                  decoration: BoxDecoration(color: product.color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Icon(product.icon, size: 32, color: product.color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(product.category.toUpperCase(),
+                          style: const TextStyle(color: Colors.blueGrey, fontSize: 10)),
+                      Text(product.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      const SizedBox(height: 4),
+                      Text(priceText(product.price), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                TextButton.icon(
+                  onPressed: () => context.read<CartProvider>().toggle(product),
+                  icon: Icon(added ? Icons.check : Icons.add_shopping_cart, size: 18),
+                  label: Text(added ? 'Added' : 'Add'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// LAB 9 Screen 2: cart with removal, total and clear-all
+class CartScreen extends StatelessWidget {
+  const CartScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Cart')),
+      body: Consumer<CartProvider>(
+        builder: (context, cart, child) {
+          if (cart.items.isEmpty) {
+            return const Center(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 12),
+                Text('Your cart is empty'),
+              ],
+            ));
+          }
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: cart.items.length,
+                  itemBuilder: (context, index) {
+                    final product = cart.items[index];
+                    return Card(
+                      child: ListTile(
+                        leading: Icon(product.icon, color: product.color),
+                        title: Text(product.name),
+                        subtitle: Text(priceText(product.price)),
+                        trailing: IconButton(
+                          tooltip: 'Remove',
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: () => context.read<CartProvider>().remove(product),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total:', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          Text(priceText(cart.totalPrice),
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => context.read<CartProvider>().clearAll(),
+                          icon: const Icon(Icons.delete_sweep_outlined),
+                          label: const Text('Clear All'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Lab 7 Feed and Favorites remain functional.
+class EventList extends StatelessWidget {
+  final List<Event> eventsList;
+  final Set<String> favoriteTitles;
+  final ValueChanged<Event> onFavorite;
+  final ValueChanged<Event> onOpen;
+
+  const EventList({super.key, required this.eventsList, required this.favoriteTitles,
+      required this.onFavorite, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    if (eventsList.isEmpty) {
+      return const Center(child: Text('No favorite events yet'));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: eventsList.length,
+      itemBuilder: (context, index) {
+        final event = eventsList[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 14),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => onOpen(event),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                EventPoster(event: event, height: 140),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(event.category.toUpperCase(),
+                            style: const TextStyle(fontSize: 10, color: Colors.blue)),
+                        Text(event.title, style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 17)),
+                        Text('${event.date}  ·  ${event.price}'),
+                      ])),
+                      IconButton(
+                        icon: Icon(favoriteTitles.contains(event.title)
+                            ? Icons.favorite : Icons.favorite_border, color: Colors.red),
+                        onPressed: () => onFavorite(event),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class EventDetailScreen extends StatefulWidget {
+  final Event event;
+  final bool isFavorite;
+  final VoidCallback onFavorite;
+
+  const EventDetailScreen({super.key, required this.event,
+      required this.isFavorite, required this.onFavorite});
+
+  @override
+  State<EventDetailScreen> createState() => _EventDetailScreenState();
+}
+
+class _EventDetailScreenState extends State<EventDetailScreen> {
+  late bool saved;
+  @override
+  void initState() {
+    super.initState();
+    saved = widget.isFavorite;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final event = widget.event;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Event Details')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            EventPoster(event: event, height: 200),
+            const SizedBox(height: 16),
+            Text(event.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text('${event.category}  ·  ${event.date}  ·  ${event.price}'),
+            const SizedBox(height: 12),
+            Text(event.description),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () {
+                widget.onFavorite();
+                setState(() => saved = !saved);
+              },
+              icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
+              label: Text(saved ? 'Remove from Favorites' : 'Add to Favorites'),
+            ),
+            OutlinedButton(onPressed: () => Navigator.pop(context),
+                child: const Text('Back to Feed')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileScreen extends StatelessWidget {
+  final String name;
+  final String email;
+  final String role;
+
+  const ProfileScreen({super.key, required this.name, required this.email, required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const CircleAvatar(radius: 40, child: Icon(Icons.person, size: 40)),
+          const SizedBox(height: 12),
+          Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+          Text(email),
+          const SizedBox(height: 6),
+          Text('Role: $role'),
+          const SizedBox(height: 20),
+          const ListTile(leading: Icon(Icons.settings_outlined), title: Text('Settings')),
+          const ListTile(leading: Icon(Icons.notifications_none), title: Text('Notifications')),
+          OutlinedButton(
+            onPressed: () => Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const RegisterScreen()),
+              (_) => false,
+            ),
+            child: const Text('Log out'),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// Simple poster for DartPad: no external image files are needed.
+class EventPoster extends StatelessWidget {
+  final Event event;
+  final double height;
+
+  const EventPoster({super.key, required this.event, required this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    final icons = <String, IconData>{
+      'Music': Icons.music_note,
+      'Technology': Icons.laptop_mac,
+      'Gaming': Icons.sports_esports,
+      'Sport': Icons.directions_run,
+    };
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(colors: [Color(0xFF174A8B), Color(0xFF5B9BEA)]),
+      ),
+      child: Center(child: Icon(icons[event.category] ?? Icons.event,
+          size: 60, color: Colors.white)),
+    );
+  }
+}
+
