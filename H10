@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
-void main() => runApp(const CloudStoreApp());
+void main() => runApp(const EventlyApp());
 
+// Lab 10: the network data comes from Fake Store API.
+// The service profiles below are demo content, not real professionals.
 class Product {
   final int id;
   final String title;
@@ -17,7 +19,7 @@ class Product {
   final double rating;
   final int reviewCount;
 
-  Product({
+  const Product({
     required this.id,
     required this.title,
     required this.price,
@@ -29,214 +31,622 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
-    final rate = json['rating'];
-    final ratingJson = rate is Map ? rate : <String, dynamic>{};
-    double number(dynamic value) {
+    final ratingJson = json['rating'];
+    final ratingMap = ratingJson is Map ? ratingJson : <String, dynamic>{};
+
+    double safeDouble(dynamic value) {
       if (value is num) return value.toDouble();
-      return double.tryParse('$value') ?? 0.0;
+      return double.tryParse(value?.toString() ?? '') ?? 0.0;
+    }
+
+    int safeInt(dynamic value) {
+      if (value is num) return value.toInt();
+      return int.tryParse(value?.toString() ?? '') ?? 0;
     }
 
     return Product(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      title: json['title']?.toString() ?? 'Untitled',
-      price: number(json['price']),
+      id: safeInt(json['id']),
+      title: json['title']?.toString() ?? 'No title',
+      price: safeDouble(json['price']),
       description: json['description']?.toString() ?? 'No description',
       category: json['category']?.toString() ?? 'Other',
       imageUrl: json['image']?.toString() ?? '',
-      rating: number(ratingJson['rate']),
-      reviewCount: (ratingJson['count'] as num?)?.toInt() ?? 0,
+      rating: safeDouble(ratingMap['rate']),
+      reviewCount: safeInt(ratingMap['count']),
     );
   }
 }
 
-class CloudStoreApp extends StatelessWidget {
-  const CloudStoreApp({super.key});
+class Specialist {
+  final String title;
+  final String category;
+  final String tagline;
+  final String description;
+  final String experience;
+  final String fee;
+  final IconData icon;
+  final Color accent;
+  final List<String> photos;
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Cloud Product Explorer',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2962FF)),
-        scaffoldBackgroundColor: const Color(0xFFF7F9FC),
-      ),
-      home: const ProductFeedScreen(),
-    );
-  }
+  const Specialist({
+    required this.title,
+    required this.category,
+    required this.tagline,
+    required this.description,
+    required this.experience,
+    required this.fee,
+    required this.icon,
+    required this.accent,
+    required this.photos,
+  });
 }
 
-class ProductFeedScreen extends StatefulWidget {
-  const ProductFeedScreen({super.key});
+const portraits = [
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=850&q=80',
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=850&q=80',
+  'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=850&q=80',
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=850&q=80',
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=850&q=80',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=850&q=80',
+  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=850&q=80',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=850&q=80',
+];
+
+const eventShots = [
+  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=850&q=80',
+  'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=850&q=80',
+  'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=850&q=80',
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=850&q=80',
+  'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=850&q=80',
+  'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=850&q=80',
+  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=850&q=80',
+  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=850&q=80',
+];
+
+// Sample profiles: no real bookings or identities are claimed.
+final Map<int, Specialist> specialists = {
+  1: Specialist(
+    title: 'Ведущий мероприятий', category: 'Ведущие',
+    tagline: 'Свадьбы, корпоративы, выпускные',
+    description: 'Проведение мероприятий на русском и казахском языках. '
+        'Разработка сценария, интерактивы, работа с гостями и координация программы.',
+    experience: 'Опыт: 5+ лет', fee: 'от 70 000 ₸',
+    icon: Icons.mic_rounded, accent: Color(0xFF6955DB),
+    photos: [portraits[0], eventShots[2], eventShots[1]],
+  ),
+  2: Specialist(
+    title: 'Модель для съёмок', category: 'Модели',
+    tagline: 'Fashion, реклама, каталоги',
+    description: 'Участие в рекламных и fashion-съёмках, презентациях брендов '
+        'и творческих проектах. Работа в студии и на выездных площадках.',
+    experience: 'Опыт: 3 года', fee: 'от 25 000 ₸',
+    icon: Icons.face_rounded, accent: Color(0xFFDB6396),
+    photos: [portraits[1], portraits[3], portraits[5]],
+  ),
+  3: Specialist(
+    title: 'Хостес на мероприятия', category: 'Хостес',
+    tagline: 'Встреча гостей, регистрация, навигация',
+    description: 'Приветствие и регистрация гостей, сопровождение участников, '
+        'помощь на выставках, форумах и деловых мероприятиях.',
+    experience: 'Опыт: 2 года', fee: 'от 18 000 ₸',
+    icon: Icons.badge_outlined, accent: Color(0xFF118A9A),
+    photos: [portraits[3], eventShots[2], portraits[1]],
+  ),
+  4: Specialist(
+    title: 'Фотограф событий', category: 'Фото/видео',
+    tagline: 'Репортаж, портрет, backstage',
+    description: 'Фотосъёмка корпоративов, концертов, мероприятий и частных '
+        'праздников. Отбор, цветокоррекция и передача готовых материалов.',
+    experience: 'Опыт: 4 года', fee: 'от 40 000 ₸',
+    icon: Icons.photo_camera_outlined, accent: Color(0xFF4679D6),
+    photos: [eventShots[4], portraits[6], eventShots[5]],
+  ),
+  5: Specialist(
+    title: 'DJ для вечеринки', category: 'DJ и музыка',
+    tagline: 'Музыка, настроение, танцпол',
+    description: 'Музыкальное сопровождение вечеринок, свадеб и корпоративов. '
+        'Подбор плейлиста под формат события и работу с аудиторией.',
+    experience: 'Опыт: 6 лет', fee: 'от 60 000 ₸',
+    icon: Icons.headphones_rounded, accent: Color(0xFFF18A4A),
+    photos: [eventShots[6], portraits[4], eventShots[0]],
+  ),
+  6: Specialist(
+    title: 'Видеограф', category: 'Фото/видео',
+    tagline: 'Reels, aftermovie, интервью',
+    description: 'Съёмка и монтаж динамичных видео с мероприятий, '
+        'рекламных роликов и коротких вертикальных видео для соцсетей.',
+    experience: 'Опыт: 3 года', fee: 'от 45 000 ₸',
+    icon: Icons.videocam_outlined, accent: Color(0xFF436FCB),
+    photos: [eventShots[5], portraits[6], eventShots[4]],
+  ),
+  7: Specialist(
+    title: 'Координатор мероприятия', category: 'Организация',
+    tagline: 'Планирование и контроль программы',
+    description: 'Работа с таймингом, подрядчиками, гостями и площадкой. '
+        'Помощь заказчику на всех этапах проведения мероприятия.',
+    experience: 'Опыт: 5 лет', fee: 'от 50 000 ₸',
+    icon: Icons.event_available_outlined, accent: Color(0xFF49A078),
+    photos: [portraits[2], eventShots[2], eventShots[0]],
+  ),
+  8: Specialist(
+    title: 'Аниматор', category: 'Аниматоры',
+    tagline: 'Детские праздники и интерактивы',
+    description: 'Развлекательные программы, конкурсы, игры и участие '
+        'в тематических праздничных мероприятиях.',
+    experience: 'Опыт: 3 года', fee: 'от 20 000 ₸',
+    icon: Icons.celebration_outlined, accent: Color(0xFFE09A36),
+    photos: [portraits[7], eventShots[0], eventShots[2]],
+  ),
+  9: Specialist(
+    title: 'Танцевальная команда', category: 'Шоу',
+    tagline: 'Сценические номера и шоу-программы',
+    description: 'Танцевальные выступления, открытие мероприятий, '
+        'постановки для брендов и праздничные программы.',
+    experience: 'Опыт: 4 года', fee: 'от 65 000 ₸',
+    icon: Icons.music_note_rounded, accent: Color(0xFFBD57AF),
+    photos: [eventShots[1], eventShots[0], portraits[5]],
+  ),
+  10: Specialist(
+    title: 'Визажист', category: 'Бьюти',
+    tagline: 'Макияж для съёмок и мероприятий',
+    description: 'Подготовка моделей, артистов и гостей к фотосессиям, '
+        'показам и торжественным событиям.',
+    experience: 'Опыт: 4 года', fee: 'от 15 000 ₸',
+    icon: Icons.brush_outlined, accent: Color(0xFFBB7999),
+    photos: [portraits[5], portraits[3], portraits[1]],
+  ),
+  11: Specialist(
+    title: 'Технический специалист', category: 'Техника',
+    tagline: 'Звук, свет, экран и сцена',
+    description: 'Подключение и контроль звукового, светового и '
+        'мультимедийного оборудования на площадке.',
+    experience: 'Опыт: 6 лет', fee: 'от 35 000 ₸',
+    icon: Icons.speaker_group_outlined, accent: Color(0xFF56758E),
+    photos: [eventShots[0], eventShots[1], eventShots[2]],
+  ),
+  12: Specialist(
+    title: 'Декоратор', category: 'Организация',
+    tagline: 'Оформление и атмосфера события',
+    description: 'Оформление фотозон, праздничных пространств, '
+        'сцен и брендированных зон с учётом задачи заказчика.',
+    experience: 'Опыт: 3 года', fee: 'от 55 000 ₸',
+    icon: Icons.auto_awesome_outlined, accent: Color(0xFF678D6A),
+    photos: [eventShots[2], eventShots[3], eventShots[0]],
+  ),
+};
+
+class EventlyApp extends StatelessWidget {
+  const EventlyApp({super.key});
 
   @override
-  State<ProductFeedScreen> createState() => _ProductFeedScreenState();
+  Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    title: 'Evently | Исполнители',
+    theme: ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6359D5)),
+      scaffoldBackgroundColor: const Color(0xFFF5F6FA),
+      appBarTheme: const AppBarTheme(backgroundColor: Color(0xFFF5F6FA)),
+    ),
+    home: const TalentFeedScreen(),
+  );
 }
 
-class _ProductFeedScreenState extends State<ProductFeedScreen> {
+class TalentFeedScreen extends StatefulWidget {
+  const TalentFeedScreen({super.key});
+
+  @override
+  State<TalentFeedScreen> createState() => _TalentFeedScreenState();
+}
+
+class _TalentFeedScreenState extends State<TalentFeedScreen> {
   List<Product> products = [];
-  bool loading = true;
-  String? error;
+  bool isLoading = true;
+  String? errorMessage;
+  String category = 'Все';
+  String search = '';
+  bool clientMode = true;
+  final searchController = TextEditingController();
+
+  final categories = const [
+    'Все', 'Ведущие', 'Модели', 'Хостес', 'Фото/видео',
+    'DJ и музыка', 'Организация', 'Аниматоры', 'Шоу', 'Бьюти', 'Техника',
+  ];
 
   @override
   void initState() {
     super.initState();
-    loadProducts();
+    fetchProducts();
   }
 
-  Future<void> loadProducts({bool refresh = false}) async {
-    if (!refresh) setState(() { loading = true; error = null; });
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> fetchProducts({bool refresh = false}) async {
+    if (!refresh && mounted) {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+    }
+
     try {
       final response = await http
           .get(Uri.parse('https://fakestoreapi.com/products'))
           .timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode}: Failed to load products');
+
+      if (response.statusCode == 404) {
+        throw Exception('404 — адрес API не найден');
       }
-      final data = jsonDecode(response.body) as List<dynamic>;
-      final loaded = data
+      if (response.statusCode >= 500) {
+        throw Exception('Ошибка сервера: ${response.statusCode}');
+      }
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) throw const FormatException('Ожидался JSON-список');
+      final result = decoded
           .map((item) => Product.fromJson(item as Map<String, dynamic>))
           .toList();
       if (!mounted) return;
-      setState(() { products = loaded; error = null; loading = false; });
+      setState(() {
+        products = result;
+        errorMessage = null;
+        isLoading = false;
+      });
     } on TimeoutException {
       if (!mounted) return;
-      setState(() { error = 'Connection timed out. Please retry.'; loading = false; });
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Истекло время ожидания (10 секунд).';
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(() { error = 'Could not connect: $e'; loading = false; });
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Не удалось загрузить каталог.\n$e';
+      });
     }
   }
+
+  Widget pageHeader() => Container(
+    padding: const EdgeInsets.all(22),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(22),
+      gradient: const LinearGradient(
+        colors: [Color(0xFF171B37), Color(0xFF6258CC)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('EVENTLY  /  LAB 10',
+            style: TextStyle(
+              color: Color(0xFFC3C8FF),
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              letterSpacing: 1.8,
+            )),
+        const SizedBox(height: 11),
+        const Text('Ваше событие — наша команда',
+            style: TextStyle(
+                color: Colors.white, fontSize: 25, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 7),
+        const Text('Найдите ведущих, моделей, хостес и других исполнителей',
+            style: TextStyle(color: Color(0xFFE0E2FF), fontSize: 13)),
+        const SizedBox(height: 15),
+        Container(
+          decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(12)),
+          child: TextField(
+            controller: searchController,
+            onChanged: (value) => setState(() => search = value),
+            decoration: const InputDecoration(
+              hintText: 'Какого специалиста ищете?',
+              prefixIcon: Icon(Icons.search),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(vertical: 15),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget talentCard(Product product, Specialist talent) => Card(
+    margin: EdgeInsets.zero,
+    elevation: 0,
+    color: Colors.white,
+    clipBehavior: Clip.antiAlias,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    child: InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProductDetailScreen(product: product, talent: talent),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(11),
+        child: Row(
+          children: [
+            Hero(
+              tag: 'product_image_${product.id}',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: TalentPhoto(talent: talent, index: 0, width: 118, height: 120),
+              ),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(talent.category.toUpperCase(),
+                      style: TextStyle(
+                          color: talent.accent,
+                          fontSize: 10, fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5)),
+                  const SizedBox(height: 5),
+                  Text(talent.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 5),
+                  Text(talent.tagline,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF68758B))),
+                  const SizedBox(height: 8),
+                  Text('★ ${product.rating.toStringAsFixed(1)}  ·  '
+                      '${product.reviewCount} (тест API)',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF607080))),
+                  const SizedBox(height: 6),
+                  Text(talent.fee,
+                      style: const TextStyle(
+                          fontSize: 15, color: Color(0xFF514AC5),
+                          fontWeight: FontWeight.w800)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFF8790A4)),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget clientFeed() {
+    final filtered = products.where((product) {
+      final talent = specialists[product.id];
+      if (talent == null) return false;
+      if (category != 'Все' && talent.category != category) return false;
+      final searchText = '${talent.title} ${talent.category} ${talent.tagline}'.toLowerCase();
+      return searchText.contains(search.trim().toLowerCase());
+    }).toList();
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 860),
+        child: RefreshIndicator(
+          onRefresh: () => fetchProducts(refresh: true),
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            itemCount: filtered.length + 2,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    pageHeader(),
+                    const SizedBox(height: 15),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: categories.map((label) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(label),
+                            selected: category == label,
+                            onSelected: (_) => setState(() => category = label),
+                          ),
+                        )).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 11),
+                    Text('Найдено анкет: ${filtered.length}',
+                        style: const TextStyle(
+                            color: Color(0xFF64718B), fontWeight: FontWeight.w600)),
+                  ],
+                );
+              }
+              if (index == filtered.length + 1) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Учебный прототип. Анкеты, фото и цены — демонстрационные. '
+                        'ID, рейтинги и числовые поля тестируются через Fake Store API.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, color: Color(0xFF78859A)),
+                  ),
+                );
+              }
+              final product = filtered[index - 1];
+              return talentCard(product, specialists[product.id]!);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget specialistInfo() => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 600),
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const Icon(Icons.badge_outlined, size: 74, color: Color(0xFF6258CC)),
+          const SizedBox(height: 15),
+          const Text('Вы исполнитель?',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          const Text('Evently помогает ведущим, моделям, хостес, '
+              'фотографам и другим специалистам находить заказчиков.',
+              textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          const Card(child: ListTile(
+            leading: Icon(Icons.person_outline),
+            title: Text('Создайте портфолио'),
+            subtitle: Text('Описание услуг, опыт и примеры работ'),
+          )),
+          const Card(child: ListTile(
+            leading: Icon(Icons.event_available_outlined),
+            title: Text('Получайте заявки'),
+            subtitle: Text('Заказчики смогут находить вашу категорию'),
+          )),
+          const Card(child: ListTile(
+            leading: Icon(Icons.chat_bubble_outline),
+            title: Text('Обсуждайте детали'),
+            subtitle: Text('Формат, бюджет, дату и условия сотрудничества'),
+          )),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Создание анкеты — следующий этап проекта')),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Создать анкету (демо)'),
+          ),
+        ],
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cloud Product Explorer'),
+        title: const Text('evently.',
+            style: TextStyle(
+                fontSize: 26, fontWeight: FontWeight.w800,
+                color: Color(0xFF27244D))),
         actions: [
-          IconButton(onPressed: () => loadProducts(), icon: const Icon(Icons.refresh)),
+          if (clientMode)
+            IconButton(
+              tooltip: 'Обновить API',
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: fetchProducts,
+            ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(46),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: true,
+                    label: Text('Заказчик'), icon: Icon(Icons.search)),
+                ButtonSegment(value: false,
+                    label: Text('Исполнитель'), icon: Icon(Icons.badge_outlined)),
+              ],
+              selected: {clientMode},
+              onSelectionChanged: (value) => setState(() => clientMode = value.first),
+            ),
+          ),
+        ),
       ),
-      body: loading
+      body: !clientMode
+          ? specialistInfo()
+          : isLoading
           ? const Center(child: CircularProgressIndicator())
-          : error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.wifi_off, color: Colors.redAccent, size: 64),
-                        const SizedBox(height: 12),
-                        const Text('Connection error', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Text(error!, textAlign: TextAlign.center),
-                        const SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          onPressed: () => loadProducts(),
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Retry Connection'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: () => loadProducts(refresh: true),
-                  child: ListView.separated(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    itemCount: products.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final product = products[index];
-                      return Card(
-                        elevation: 0,
-                        color: Colors.white,
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              children: [
-                                Hero(
-                                  tag: 'product_image_${product.id}',
-                                  child: ProductPicture(url: product.imageUrl, width: 90, height: 90),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(product.category.toUpperCase(),
-                                          style: const TextStyle(fontSize: 11, color: Colors.blueGrey)),
-                                      const SizedBox(height: 3),
-                                      Text(product.title,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontWeight: FontWeight.w600)),
-                                      const SizedBox(height: 6),
-                                      Text('â ${product.rating.toStringAsFixed(1)}  (${product.reviewCount})',
-                                          style: const TextStyle(fontSize: 12)),
-                                      const SizedBox(height: 6),
-                                      Text('\$${product.price.toStringAsFixed(2)}',
-                                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(Icons.chevron_right),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+          : errorMessage != null
+          ? Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.wifi_off_rounded,
+                  size: 72, color: Color(0xFFE46977)),
+              const SizedBox(height: 12),
+              const Text('Нет подключения',
+                  style: TextStyle(fontSize: 23,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text(errorMessage!, textAlign: TextAlign.center),
+              const SizedBox(height: 18),
+              ElevatedButton.icon(
+                onPressed: fetchProducts,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry Connection'),
+              ),
+            ],
+          ),
+        ),
+      )
+          : clientFeed(),
     );
   }
 }
 
-class ProductPicture extends StatelessWidget {
-  final String url;
+class TalentPhoto extends StatelessWidget {
+  final Specialist talent;
+  final int index;
   final double? width;
   final double? height;
-  final BoxFit fit;
 
-  const ProductPicture({
+  const TalentPhoto({
     super.key,
-    required this.url,
+    required this.talent,
+    required this.index,
     this.width,
     this.height,
-    this.fit = BoxFit.contain,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
+  Widget build(BuildContext context) => SizedBox(
+    height: height,
+    width: width,
+    child: Image.network(
+      talent.photos[index],
+      fit: BoxFit.cover,
       width: width,
       height: height,
-      alignment: Alignment.center,
-      child: Image.network(
-        url,
-        width: width,
-        height: height,
-        fit: fit,
-        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 45),
+      loadingBuilder: (context, child, progress) => progress == null
+          ? child
+          : ColoredBox(
+        color: talent.accent.withValues(alpha: 0.10),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-    );
-  }
+      errorBuilder: (_, __, ___) => ColoredBox(
+        color: talent.accent.withValues(alpha: 0.14),
+        child: Center(child: Icon(talent.icon, color: talent.accent, size: 52)),
+      ),
+    ),
+  );
 }
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
-  const ProductDetailScreen({super.key, required this.product});
+  final Specialist talent;
+
+  const ProductDetailScreen({
+    super.key,
+    required this.product,
+    required this.talent,
+  });
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -244,7 +654,7 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final PageController pageController = PageController();
-  int page = 0;
+  int currentPage = 0;
 
   @override
   void dispose() {
@@ -252,33 +662,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.dispose();
   }
 
-  void shareProduct() {
-    final link = 'narxoz://store/product/${widget.product.id}';
-    showModalBottomSheet(
+  void openShareSheet() {
+    final deepLink = 'narxoz://store/product/${widget.product.id}';
+    showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.all(23),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Share product', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              SelectableText(link),
-              const SizedBox(height: 18),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: link));
-                  if (!sheetContext.mounted) return;
-                  Navigator.pop(sheetContext);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Deep link copied')),
-                  );
-                },
+              const Text('Поделиться анкетой',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 7),
+              Text(widget.talent.title),
+              const SizedBox(height: 15),
+              SelectableText(deepLink),
+              const SizedBox(height: 14),
+              FilledButton.icon(
                 icon: const Icon(Icons.copy),
                 label: const Text('Copy Link'),
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: deepLink));
+                  if (!sheetContext.mounted) return;
+                  Navigator.pop(sheetContext);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Ссылка скопирована')),
+                  );
+                },
               ),
             ],
           ),
@@ -289,99 +703,139 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final talent = widget.talent;
     final product = widget.product;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Product Details'),
-        actions: [IconButton(onPressed: shareProduct, icon: const Icon(Icons.share))],
+        title: const Text('Анкета специалиста'),
+        actions: [
+          IconButton(
+            tooltip: 'Поделиться',
+            onPressed: openShareSheet,
+            icon: const Icon(Icons.ios_share_outlined),
+          ),
+        ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Container(
-              color: Colors.white,
-              height: 290,
-              child: Stack(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: ListView(
+            padding: const EdgeInsets.all(18),
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(19),
+                child: SizedBox(
+                  height: 310,
+                  child: Stack(
+                    children: [
+                      PageView.builder(
+                        controller: pageController,
+                        itemCount: 3,
+                        onPageChanged: (index) => setState(() => currentPage = index),
+                        itemBuilder: (_, index) => index == 0
+                            ? Hero(
+                          tag: 'product_image_${product.id}',
+                          child: TalentPhoto(
+                              talent: talent, index: index,
+                              width: double.infinity, height: 310),
+                        )
+                            : TalentPhoto(
+                            talent: talent, index: index,
+                            width: double.infinity, height: 310),
+                      ),
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: Chip(label: Text('${currentPage + 1} / 3')),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 14,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            3,
+                                (i) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: currentPage == i ? 23 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: currentPage == i
+                                    ? const Color(0xFF6258CC)
+                                    : Colors.white70,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Align(alignment: Alignment.centerLeft,
+                  child: Chip(label: Text(talent.category))),
+              const SizedBox(height: 8),
+              Text(talent.title,
+                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 5),
+              Text(talent.tagline, style: const TextStyle(color: Color(0xFF6A758A))),
+              const SizedBox(height: 14),
+              Row(children: [
+                const Icon(Icons.location_on_outlined, size: 18),
+                const Text(' Алматы    '),
+                const Icon(Icons.verified_outlined, size: 18),
+                Text(' ${talent.experience}'),
+              ]),
+              const SizedBox(height: 12),
+              Text('★ ${product.rating.toStringAsFixed(1)}  ·  '
+                  '${product.reviewCount} (тестовый API)'),
+              const SizedBox(height: 12),
+              Text(talent.fee,
+                  style: const TextStyle(
+                      fontSize: 26, fontWeight: FontWeight.w800,
+                      color: Color(0xFF6258CC))),
+              const SizedBox(height: 20),
+              const Text('Об услуге',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(talent.description, style: const TextStyle(height: 1.5)),
+              const SizedBox(height: 15),
+              const Text('Демо-профиль: фото, услуги и тарифы — примеры. '
+                  'Для Lab 10 загружаем JSON с Fake Store API.',
+                  style: TextStyle(color: Color(0xFF77849A), fontSize: 12)),
+              const SizedBox(height: 6),
+              ExpansionTile(
+                title: const Text('Данные оригинального API'),
+                childrenPadding: const EdgeInsets.all(14),
                 children: [
-                  PageView.builder(
-                    controller: pageController,
-                    itemCount: 3,
-                    onPageChanged: (value) => setState(() => page = value),
-                    itemBuilder: (context, index) {
-                      // The API supplies one image; show three different zoom levels.
-                      final zoom = [1.0, 1.25, 1.5][index];
-                      Widget photo = Padding(
-                        padding: const EdgeInsets.all(22),
-                        child: Transform.scale(
-                          scale: zoom,
-                          child: ProductPicture(url: product.imageUrl),
-                        ),
-                      );
-                      if (index == 0) {
-                        photo = Hero(tag: 'product_image_${product.id}', child: photo);
-                      }
-                      return photo;
-                    },
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Chip(label: Text('${page + 1} / 3')),
-                  ),
-                  Positioned(
-                    bottom: 12,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(3, (index) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: page == index ? 18 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: page == index ? Colors.blue : Colors.blueGrey.shade200,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      )),
-                    ),
-                  ),
+                  Text('ID: ${product.id}'),
+                  Text('Title: ${product.title}'),
+                  Text('Price: \$${product.price.toStringAsFixed(2)}'),
+                  Text('Category: ${product.category}'),
+                  Text('Description: ${product.description}'),
                 ],
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 20),
-          Chip(label: Text(product.category)),
-          const SizedBox(height: 10),
-          Text(product.title,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Text('â ${product.rating.toStringAsFixed(1)}  â¢  ${product.reviewCount} reviews'),
-          const SizedBox(height: 12),
-          Text('\$${product.price.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue)),
-          const SizedBox(height: 20),
-          const Text('Description', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text(product.description, style: const TextStyle(height: 1.6)),
-        ],
+        ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: ElevatedButton.icon(
+          child: FilledButton.icon(
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('${product.title} added to cart (demo)')),
+              SnackBar(content: Text('${talent.title} — добавлен в заказ (демо)')),
             ),
-            icon: const Icon(Icons.shopping_cart_outlined),
-            label: const Text('Add to Cart'),
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(55),
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(54),
+              backgroundColor: const Color(0xFF6258CC),
             ),
+            icon: const Icon(Icons.shopping_bag_outlined),
+            label: const Text('Добавить в заказ · Add to Cart'),
           ),
         ),
       ),
