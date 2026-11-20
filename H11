@@ -1,0 +1,745 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// LW11 storage keys — keep them stable between app launches.
+const String kDarkModeKey = 'app_theme_dark_mode';
+const String kUserNameKey = 'user_display_name';
+const String kNotesKey = 'evently_notes_json';
+
+/// Strongly typed note domain model used in the JSON persistence task.
+class NoteItem {
+  const NoteItem({
+    required this.id,
+    required this.title,
+    required this.dateText,
+    required this.isCompleted,
+  });
+
+  final String id;
+  final String title;
+  final String dateText;
+  final bool isCompleted;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'title': title,
+    'dateText': dateText,
+    'isCompleted': isCompleted,
+  };
+
+  factory NoteItem.fromJson(Map<String, dynamic> json) {
+    return NoteItem(
+      id: (json['id'] ?? '').toString(),
+      title: (json['title'] ?? '').toString(),
+      dateText: (json['dateText'] ?? '').toString(),
+      isCompleted: json['isCompleted'] == true,
+    );
+  }
+
+  NoteItem copyWith({bool? isCompleted}) => NoteItem(
+    id: id,
+    title: title,
+    dateText: dateText,
+    isCompleted: isCompleted ?? this.isCompleted,
+  );
+}
+
+/// All persisted settings are read BEFORE runApp, preventing theme flicker.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final bool darkMode = prefs.getBool(kDarkModeKey) ?? false;
+  final String userName = prefs.getString(kUserNameKey) ?? 'Guest User';
+  final String notesJson = prefs.getString(kNotesKey) ?? '[]';
+
+  List<NoteItem> restoredNotes = <NoteItem>[];
+  try {
+    final dynamic decoded = jsonDecode(notesJson);
+    if (decoded is List) {
+      restoredNotes = decoded
+          .whereType<Map>()
+          .map((Map item) =>
+          NoteItem.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+    }
+  } on FormatException {
+    // Corrupt or outdated local JSON should not crash the application.
+    restoredNotes = <NoteItem>[];
+  } on TypeError {
+    restoredNotes = <NoteItem>[];
+  }
+
+  runApp(EventlyVaultApp(
+    preferences: prefs,
+    initialDarkMode: darkMode,
+    initialName: userName,
+    initialNotes: restoredNotes,
+  ));
+}
+
+class EventlyVaultApp extends StatefulWidget {
+  const EventlyVaultApp({
+    super.key,
+    required this.preferences,
+    required this.initialDarkMode,
+    required this.initialName,
+    required this.initialNotes,
+  });
+
+  final SharedPreferences preferences;
+  final bool initialDarkMode;
+  final String initialName;
+  final List<NoteItem> initialNotes;
+
+  @override
+  State<EventlyVaultApp> createState() => _EventlyVaultAppState();
+}
+
+class _EventlyVaultAppState extends State<EventlyVaultApp> {
+  late bool _isDarkMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDarkMode = widget.initialDarkMode;
+  }
+
+  Future<void> _changeTheme(bool value) async {
+    final bool oldValue = _isDarkMode;
+    setState(() => _isDarkMode = value);
+    try {
+      final bool saved =
+      await widget.preferences.setBool(kDarkModeKey, value);
+      if (!saved && mounted) {
+        setState(() => _isDarkMode = oldValue);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isDarkMode = oldValue);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const Color purple = Color(0xFF7055D8);
+    return MaterialApp(
+      title: 'Evently • Offline Vault',
+      debugShowCheckedModeBanner: false,
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: purple),
+        scaffoldBackgroundColor: const Color(0xFFF7F7FC),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE4E2ED)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE4E2ED)),
+          ),
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        ),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme:
+        ColorScheme.fromSeed(seedColor: purple, brightness: Brightness.dark),
+        scaffoldBackgroundColor: const Color(0xFF10111C),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF222332),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF414052)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF414052)),
+          ),
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        ),
+      ),
+      home: EventlyVaultHome(
+        preferences: widget.preferences,
+        initialName: widget.initialName,
+        initialNotes: widget.initialNotes,
+        isDarkMode: _isDarkMode,
+        onDarkModeChanged: _changeTheme,
+      ),
+    );
+  }
+}
+
+/// Single-screen Evently planning vault: profile, theme, and offline notes.
+class EventlyVaultHome extends StatefulWidget {
+  const EventlyVaultHome({
+    super.key,
+    required this.preferences,
+    required this.initialName,
+    required this.initialNotes,
+    required this.isDarkMode,
+    required this.onDarkModeChanged,
+  });
+
+  final SharedPreferences preferences;
+  final String initialName;
+  final List<NoteItem> initialNotes;
+  final bool isDarkMode;
+  final ValueChanged<bool> onDarkModeChanged;
+
+  @override
+  State<EventlyVaultHome> createState() => _EventlyVaultHomeState();
+}
+
+class _EventlyVaultHomeState extends State<EventlyVaultHome> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _noteController;
+  late String _displayName;
+  late List<NoteItem> _notes;
+  bool _isSavingName = false;
+  bool _isSavingNotes = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayName = widget.initialName.trim().isEmpty
+        ? 'Guest User'
+        : widget.initialName;
+    _nameController = TextEditingController(
+        text: _displayName == 'Guest User' ? '' : _displayName);
+    _noteController = TextEditingController();
+    _notes = List<NoteItem>.from(widget.initialNotes);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _saveUserName() async {
+    if (_isSavingName) return;
+    final String name = _nameController.text.trim().isEmpty
+        ? 'Guest User'
+        : _nameController.text.trim();
+    setState(() => _isSavingName = true);
+    try {
+      final bool saved =
+      await widget.preferences.setString(kUserNameKey, name);
+      if (saved && mounted) {
+        setState(() => _displayName = name);
+        _showMessage('Имя сохранено на устройстве');
+      } else if (!saved) {
+        _showMessage('Не удалось сохранить имя');
+      }
+    } catch (_) {
+      _showMessage('Ошибка локального сохранения имени');
+    } finally {
+      if (mounted) setState(() => _isSavingName = false);
+    }
+  }
+
+  Future<bool> _saveNotesToDisk() async {
+    try {
+      final String jsonString =
+      jsonEncode(_notes.map((NoteItem n) => n.toJson()).toList());
+      final bool saved =
+      await widget.preferences.setString(kNotesKey, jsonString);
+      if (!saved) _showMessage('Не удалось сохранить список задач');
+      return saved;
+    } catch (_) {
+      _showMessage('Ошибка сохранения заметок');
+      return false;
+    }
+  }
+
+  String _formattedNow() {
+    final DateTime date = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(date.day)}.${two(date.month)}.${date.year} · '
+        '${two(date.hour)}:${two(date.minute)}';
+  }
+
+  Future<void> _addNote() async {
+    if (_isSavingNotes) return;
+    final String title = _noteController.text.trim();
+    if (title.isEmpty) {
+      _showMessage('Напиши название задачи');
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isSavingNotes = true;
+      // Newest note is prepended, as requested in LW11.
+      _notes.insert(
+        0,
+        NoteItem(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          title: title,
+          dateText: _formattedNow(),
+          isCompleted: false,
+        ),
+      );
+      _noteController.clear();
+    });
+    final bool saved = await _saveNotesToDisk();
+    if (mounted) {
+      setState(() => _isSavingNotes = false);
+      if (saved) _showMessage('Задача сохранена офлайн');
+    }
+  }
+
+  Future<void> _toggleNote(int index, bool? value) async {
+    if (_isSavingNotes || value == null) return;
+    setState(() {
+      _isSavingNotes = true;
+      _notes[index] = _notes[index].copyWith(isCompleted: value);
+    });
+    await _saveNotesToDisk();
+    if (mounted) setState(() => _isSavingNotes = false);
+  }
+
+  Future<void> _deleteNote(int index) async {
+    if (_isSavingNotes) return;
+    setState(() {
+      _isSavingNotes = true;
+      _notes.removeAt(index);
+    });
+    await _saveNotesToDisk();
+    if (mounted) setState(() => _isSavingNotes = false);
+  }
+
+  Widget _panel({required Widget child}) {
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF1D1E2B) : Colors.white,
+        border: Border.all(
+          color: dark ? const Color(0xFF343442) : const Color(0xFFE9E7F1),
+        ),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _sectionTitle(IconData icon, String title, String subtitle) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: <Widget>[
+        Container(
+          padding: const EdgeInsets.all(11),
+          decoration: BoxDecoration(
+            color: scheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: scheme.onPrimaryContainer),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              )),
+              const SizedBox(height: 3),
+              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _profilePanel() {
+    return _panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _sectionTitle(Icons.badge_outlined, 'Мой профиль',
+              'Имя заказчика или исполнителя'),
+          const SizedBox(height: 18),
+          TextField(
+            controller: _nameController,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _saveUserName(),
+            decoration: const InputDecoration(
+              hintText: 'Например, Raym',
+              prefixIcon: Icon(Icons.person_outline_rounded),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _isSavingName ? null : _saveUserName,
+            icon: const Icon(Icons.save_outlined, size: 19),
+            label: Text(_isSavingName ? 'Сохранение...' : 'Сохранить имя'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _settingsPanel() {
+    return _panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _sectionTitle(Icons.tune_rounded, 'Настройки',
+              'Сохраняются на этом устройстве'),
+          const SizedBox(height: 12),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Тёмная тема',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: const Text('Без белой вспышки при запуске'),
+            secondary: Icon(widget.isDarkMode
+                ? Icons.dark_mode_outlined
+                : Icons.light_mode_outlined),
+            value: widget.isDarkMode,
+            onChanged: widget.onDarkModeChanged,
+          ),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Row(
+              children: <Widget>[
+                Icon(Icons.lock_outline_rounded, size: 18,
+                    color: Color(0xFF3CBA89)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Заметки доступны без интернета',
+                    style: TextStyle(fontSize: 12.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _noteComposer() {
+    return LayoutBuilder(builder: (BuildContext context, BoxConstraints c) {
+      final Widget input = TextField(
+        controller: _noteController,
+        textCapitalization: TextCapitalization.sentences,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _addNote(),
+        decoration: const InputDecoration(
+          hintText: 'Например, согласовать ведущего',
+          prefixIcon: Icon(Icons.edit_note_rounded),
+        ),
+      );
+      final Widget addButton = FilledButton.icon(
+        onPressed: _isSavingNotes ? null : _addNote,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Добавить'),
+      );
+      if (c.maxWidth < 420) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            input,
+            const SizedBox(height: 10),
+            addButton,
+          ],
+        );
+      }
+      return Row(
+        children: <Widget>[
+          Expanded(child: input),
+          const SizedBox(width: 10),
+          addButton,
+        ],
+      );
+    });
+  }
+
+  Widget _notesPanel() {
+    final int doneCount = _notes.where((NoteItem n) => n.isCompleted).length;
+    final double progress =
+    _notes.isEmpty ? 0 : doneCount / _notes.length;
+    final ThemeData theme = Theme.of(context);
+    return _panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _sectionTitle(Icons.checklist_rounded, 'Мои задачи',
+              'План подготовки мероприятия'),
+          const SizedBox(height: 20),
+          Row(
+            children: <Widget>[
+              Text('$doneCount из ${_notes.length} выполнено',
+                  style: theme.textTheme.bodySmall),
+              const Spacer(),
+              Text('${(progress * 100).round()}%',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  )),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 7,
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _noteComposer(),
+          const SizedBox(height: 18),
+          if (_notes.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28),
+              child: Column(
+                children: <Widget>[
+                  Icon(Icons.sticky_note_2_outlined,
+                      size: 48, color: theme.colorScheme.primary),
+                  const SizedBox(height: 12),
+                  Text('Здесь пока нет задач',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      )),
+                  const SizedBox(height: 5),
+                  Text('Добавь первую задачу для своего ивента',
+                      style: theme.textTheme.bodySmall,
+                      textAlign: TextAlign.center),
+                ],
+              ),
+            )
+          else
+            ...List<Widget>.generate(_notes.length, (int index) {
+              final NoteItem note = _notes[index];
+              return Column(
+                children: <Widget>[
+                  if (index > 0) const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    child: Row(
+                      children: <Widget>[
+                        Checkbox(
+                          value: note.isCompleted,
+                          onChanged: _isSavingNotes
+                              ? null
+                              : (bool? value) => _toggleNote(index, value),
+                          semanticLabel: 'Выполнено: ${note.title}',
+                        ),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                note.title,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  decoration: note.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                  color: note.isCompleted
+                                      ? theme.colorScheme.onSurfaceVariant
+                                      : theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(note.dateText,
+                                  style: theme.textTheme.bodySmall),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Удалить заметку',
+                          onPressed: _isSavingNotes
+                              ? null
+                              : () => _deleteNote(index),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }),
+          const SizedBox(height: 6),
+          Row(
+            children: <Widget>[
+              const Icon(Icons.cloud_off_rounded, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _isSavingNotes
+                      ? 'Сохраняем на устройство…'
+                      : 'Данные хранятся локально в SharedPreferences',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _welcomeBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: <Color>[Color(0xFF4931AC), Color(0xFF8962ED)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0x33FFFFFF),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: const Text('EVENTLY  •  OFFLINE VAULT',
+                style: TextStyle(color: Colors.white, fontSize: 11,
+                    fontWeight: FontWeight.w800, letterSpacing: 1.1)),
+          ),
+          const SizedBox(height: 15),
+          Text(
+            'Салам, $_displayName!',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 27,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 9),
+          const Text(
+            'Планируй ивенты, сохраняй задачи и настройки. '
+                'Всё останется с тобой даже после перезапуска приложения.',
+            style: TextStyle(color: Color(0xFFF1EDFF), fontSize: 14,
+                height: 1.5),
+          ),
+          const SizedBox(height: 18),
+          const Row(
+            children: <Widget>[
+              Icon(Icons.offline_bolt_rounded,
+                  color: Color(0xFFBDF9D9), size: 18),
+              SizedBox(width: 7),
+              Text('Работает офлайн', style: TextStyle(
+                color: Color(0xFFBDF9D9), fontWeight: FontWeight.w600,
+              )),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(Icons.event_available_rounded, size: 25),
+            SizedBox(width: 9),
+            Text('Evently', style: TextStyle(fontWeight: FontWeight.w800)),
+          ],
+        ),
+        actions: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(right: 14),
+            child: Center(
+              child: Text('LAB 11', style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              )),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: LayoutBuilder(
+                    builder: (BuildContext context, BoxConstraints inner) {
+                      final bool isWide = inner.maxWidth >= 740;
+                      final Widget settings = Column(
+                        children: <Widget>[
+                          _profilePanel(),
+                          const SizedBox(height: 16),
+                          _settingsPanel(),
+                        ],
+                      );
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          _welcomeBanner(),
+                          const SizedBox(height: 18),
+                          if (isWide)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                SizedBox(width: 325, child: settings),
+                                const SizedBox(width: 18),
+                                Expanded(child: _notesPanel()),
+                              ],
+                            )
+                          else ...<Widget>[
+                            settings,
+                            const SizedBox(height: 16),
+                            _notesPanel(),
+                          ],
+                          const SizedBox(height: 18),
+                          Center(
+                            child: Text(
+                              'Evently • LW11 • Local storage only',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
